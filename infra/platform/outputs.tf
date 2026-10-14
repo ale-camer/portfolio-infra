@@ -278,6 +278,26 @@ output "p11_multi_agent_sa_email" {
   value       = module.p11_multi_agent.service_account_email
 }
 
+output "monitoring_dashboard_id" {
+  description = "Resource ID of the Cloud Monitoring observability & latency dashboard."
+  value       = google_monitoring_dashboard.platform_observability.id
+}
+
+output "monitoring_uptime_check_ids" {
+  description = "Map of Cloud Run service keys to provisioned Cloud Monitoring HTTPS /health uptime check IDs (empty when enable_uptime_checks = false)."
+  value       = { for k, check in google_monitoring_uptime_check_config.cloud_run_health : k => check.uptime_check_id }
+}
+
+output "monitoring_alert_policy_ids" {
+  description = "Map of Cloud Monitoring alert policy keys to their fully-qualified resource IDs."
+  value = {
+    log_errors     = google_monitoring_alert_policy.cloud_run_log_errors.id
+    latency_5xx    = google_monitoring_alert_policy.cloud_run_5xx_and_latency.id
+    uptime_failure = var.enable_uptime_checks ? google_monitoring_alert_policy.cloud_run_uptime_failure[0].id : null
+  }
+}
+
+
 
 
 
