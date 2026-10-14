@@ -71,3 +71,15 @@ variable "monthly_budget_usd" {
     error_message = "monthly_budget_usd must be a whole integer between 1 and 10 USD to enforce the < $10/month platform ceiling."
   }
 }
+
+variable "p01_image_tag" {
+  description = "Container image tag or immutable commit SHA deployed for the P-01 daily ETL Cloud Run Job."
+  type        = string
+  default     = "latest"
+
+  validation {
+    condition     = length(trimspace(var.p01_image_tag)) > 0
+    error_message = "p01_image_tag must be a non-empty tag or commit SHA."
+  }
+}
+

@@ -83,6 +83,22 @@ output "workload_db_secret_bindings" {
   value       = local.workload_db_secret_bindings
 }
 
+output "p01_daily_etl_job_name" {
+  description = "Provisioned Cloud Run v2 Job name for P-01 (financial-markets-pipeline)."
+  value       = module.p01_daily_etl.job_name
+}
+
+output "p01_daily_etl_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-01 daily ETL Cloud Run Job."
+  value       = module.p01_daily_etl.service_account_email
+}
+
+output "p01_daily_etl_scheduler_name" {
+  description = "Cloud Scheduler job name triggering P-01 daily ETL on weekdays after US market close (0 22 * * 1-5 UTC)."
+  value       = module.p01_daily_etl.scheduler_job_name
+}
+
+
 
 
 
