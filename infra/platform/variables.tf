@@ -127,6 +127,18 @@ variable "p06_image_tag" {
   }
 }
 
+variable "p07_image_tag" {
+  description = "Container image tag or immutable commit SHA deployed for the P-07 SEC documents hybrid RAG Cloud Run Service."
+  type        = string
+  default     = "latest"
+
+  validation {
+    condition     = length(trimspace(var.p07_image_tag)) > 0
+    error_message = "p07_image_tag must be a non-empty tag or commit SHA."
+  }
+}
+
+
 
 
 
