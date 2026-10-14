@@ -98,6 +98,22 @@ output "p01_daily_etl_scheduler_name" {
   value       = module.p01_daily_etl.scheduler_job_name
 }
 
+output "p02_crypto_etl_job_name" {
+  description = "Provisioned Cloud Run v2 Job name for P-02 (crypto-analytics-platform)."
+  value       = module.p02_crypto_etl.job_name
+}
+
+output "p02_crypto_etl_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-02 Polars lakehouse ETL Cloud Run Job."
+  value       = module.p02_crypto_etl.service_account_email
+}
+
+output "p02_crypto_etl_scheduler_name" {
+  description = "Cloud Scheduler job name triggering P-02 crypto lakehouse ETL daily at 01:00 UTC (0 1 * * *)."
+  value       = module.p02_crypto_etl.scheduler_job_name
+}
+
+
 
 
 
