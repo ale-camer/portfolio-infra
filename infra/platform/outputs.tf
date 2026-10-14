@@ -73,5 +73,16 @@ output "infra_terraform_sa_email" {
   value       = google_service_account.infra_terraform.email
 }
 
+output "external_database_topology" {
+  description = "Canonical connectivity metadata, Secret Manager shell IDs, and scale-to-zero pool settings for Neon PostgreSQL (pgvector), MongoDB Atlas M0, and Upstash Redis."
+  value       = local.external_database_topology
+}
+
+output "workload_db_secret_bindings" {
+  description = "Standardized per-workload database secret_env_vars and connection-pool env_vars map for P-01 through P-10."
+  value       = local.workload_db_secret_bindings
+}
+
+
 
 
