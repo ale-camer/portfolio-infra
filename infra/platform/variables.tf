@@ -182,6 +182,24 @@ variable "p11_image_tag" {
   }
 }
 
+variable "enable_uptime_checks" {
+  description = "Whether to provision 15-minute (900s) Cloud Monitoring HTTPS /health uptime checks across deployed Cloud Run Services. Set to false during extended hibernation to avoid periodic cold-start invocations."
+  type        = bool
+  default     = true
+}
+
+variable "log_retention_days" {
+  description = "Retention period in days for the Cloud Logging _Default bucket (1 to 30 days; default 7 days to stay strictly within the 50 GiB/month Free Tier)."
+  type        = number
+  default     = 7
+
+  validation {
+    condition     = var.log_retention_days >= 1 && var.log_retention_days <= 30 && floor(var.log_retention_days) == var.log_retention_days
+    error_message = "log_retention_days must be a whole integer between 1 and 30 days."
+  }
+}
+
+
 
 
 
