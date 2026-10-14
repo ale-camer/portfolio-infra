@@ -1,0 +1,42 @@
+# Terraform local state and caches
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+*.tfplan
+
+# Terraform variables (keep only *.tfvars.example)
+*.tfvars
+*.tfvars.json
+!terraform.tfvars.example
+
+# Environment & credentials (keep only .env.example)
+.env
+.env.*
+!.env.example
+*credentials*.json
+*service-account*.json
+*.pem
+*.key
+
+# Python / Linters / Security scanners
+.venv/
+__pycache__/
+.ruff_cache/
+.pytest_cache/
+.checkov/
+
+# OS & IDEs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~

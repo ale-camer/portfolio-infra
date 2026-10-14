@@ -1,0 +1,42 @@
+name: IaC Quality Gates
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gates:
+    name: Terraform & Script Checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.9.8"
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: "v0.53.0"
+
+      - name: Install ShellCheck and Checkov
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y shellcheck
+          pip install --upgrade pip checkov
+
+      - name: Run Makefile Quality Gates
+        run: make check
