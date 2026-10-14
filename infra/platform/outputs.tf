@@ -113,6 +113,32 @@ output "p02_crypto_etl_scheduler_name" {
   value       = module.p02_crypto_etl.scheduler_job_name
 }
 
+output "p03_market_events_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-03 (real-time-market-events)."
+  value       = module.p03_market_events.service_name
+}
+
+output "p03_market_events_service_url" {
+  description = "Public HTTPS URL of the P-03 market events Cloud Run v2 Service."
+  value       = module.p03_market_events.service_uri
+}
+
+output "p03_market_events_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-03 Cloud Run Service."
+  value       = module.p03_market_events.service_account_email
+}
+
+output "p03_pubsub_topic_name" {
+  description = "Primary Cloud Pub/Sub topic name replacing Apache Kafka for P-03 market events."
+  value       = module.p03_market_events_pubsub.topic_name
+}
+
+output "p03_pubsub_subscription_name" {
+  description = "Primary Cloud Pub/Sub pull subscription name for P-03 market events."
+  value       = module.p03_market_events_pubsub.subscription_name
+}
+
+
 
 
 
