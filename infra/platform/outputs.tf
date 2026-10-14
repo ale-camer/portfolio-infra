@@ -43,3 +43,14 @@ output "bigquery_dataset_ids" {
   value       = { for k, ds in google_bigquery_dataset.datasets : k => ds.dataset_id }
 }
 
+output "secret_manager_secret_ids" {
+  description = "Map of logical secret keys to Secret Manager secret_id values for the 6 consolidated portfolio secrets."
+  value       = { for k, s in google_secret_manager_secret.catalog : k => s.secret_id }
+}
+
+output "secret_manager_secret_names" {
+  description = "Map of logical secret keys to fully-qualified Secret Manager resource names (projects/<project>/secrets/<id>)."
+  value       = { for k, s in google_secret_manager_secret.catalog : k => s.name }
+}
+
+
