@@ -94,4 +94,16 @@ variable "p02_image_tag" {
   }
 }
 
+variable "p03_image_tag" {
+  description = "Container image tag or immutable commit SHA deployed for the P-03 market events Cloud Run Service."
+  type        = string
+  default     = "latest"
+
+  validation {
+    condition     = length(trimspace(var.p03_image_tag)) > 0
+    error_message = "p03_image_tag must be a non-empty tag or commit SHA."
+  }
+}
+
+
 
