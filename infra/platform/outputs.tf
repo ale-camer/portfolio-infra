@@ -138,6 +138,37 @@ output "p03_pubsub_subscription_name" {
   value       = module.p03_market_events_pubsub.subscription_name
 }
 
+output "p05_hub_api_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-05 (market-intelligence-hub)."
+  value       = module.p05_hub_api.service_name
+}
+
+output "p05_hub_api_service_url" {
+  description = "Public HTTPS URL of the P-05 Unified Market Intelligence Hub API."
+  value       = module.p05_hub_api.service_uri
+}
+
+output "p05_hub_api_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-05 Hub API Cloud Run Service."
+  value       = module.p05_hub_api.service_account_email
+}
+
+output "p05_dbt_build_job_name" {
+  description = "Provisioned Cloud Run v2 Job name for P-05 daily dbt warehouse transformations."
+  value       = module.p05_dbt_build.job_name
+}
+
+output "p05_dbt_build_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-05 dbt build Cloud Run Job."
+  value       = module.p05_dbt_build.service_account_email
+}
+
+output "p05_dbt_build_scheduler_name" {
+  description = "Cloud Scheduler job name triggering P-05 dbt build daily at 02:00 UTC (0 2 * * *)."
+  value       = module.p05_dbt_build.scheduler_job_name
+}
+
+
 
 
 
