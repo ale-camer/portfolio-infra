@@ -168,6 +168,32 @@ output "p05_dbt_build_scheduler_name" {
   value       = module.p05_dbt_build.scheduler_job_name
 }
 
+output "p06_anomaly_api_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-06 (asset-anomaly-detection)."
+  value       = module.p06_anomaly_api.service_name
+}
+
+output "p06_anomaly_api_service_url" {
+  description = "Public HTTPS URL of the P-06 Anomaly Detection MLOps API."
+  value       = module.p06_anomaly_api.service_uri
+}
+
+output "p06_anomaly_api_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-06 Anomaly API Cloud Run Service."
+  value       = module.p06_anomaly_api.service_account_email
+}
+
+output "p06_train_detect_job_name" {
+  description = "Provisioned Cloud Run v2 Job name for P-06 model training and Evidently drift detection."
+  value       = module.p06_train_detect.job_name
+}
+
+output "p06_train_detect_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-06 training/drift Cloud Run Job."
+  value       = module.p06_train_detect.service_account_email
+}
+
+
 
 
 
