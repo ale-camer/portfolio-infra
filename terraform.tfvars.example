@@ -1,0 +1,8 @@
+# Example Terraform variables (Copy to terraform.tfvars locally; NEVER commit real .tfvars)
+project_id         = "portfolio-platform-000000"
+region             = "us-central1"
+environment        = "prod"
+billing_account_id = "000000-000000-000000"
+alert_email        = "alerts-example@example.com"
+github_owner       = "ale-camer"
+monthly_budget_usd = 10
