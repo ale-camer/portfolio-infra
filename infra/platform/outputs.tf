@@ -208,6 +208,32 @@ output "p07_docs_rag_sa_email" {
   value       = module.p07_docs_rag.service_account_email
 }
 
+output "p08_market_intel_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-08 (ai-powered-market-intelligence)."
+  value       = module.p08_market_intel.service_name
+}
+
+output "p08_market_intel_service_url" {
+  description = "Public HTTPS URL of the P-08 End-to-End AI Market Intelligence API."
+  value       = module.p08_market_intel.service_uri
+}
+
+output "p08_market_intel_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-08 Market Intelligence Cloud Run Service."
+  value       = module.p08_market_intel.service_account_email
+}
+
+output "p08_nlp_worker_job_name" {
+  description = "Provisioned Cloud Run v2 Job name for P-08 NLP signal and embedding batch ingestion."
+  value       = module.p08_nlp_worker.job_name
+}
+
+output "p08_nlp_worker_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-08 NLP worker Cloud Run Job."
+  value       = module.p08_nlp_worker.service_account_email
+}
+
+
 
 
 

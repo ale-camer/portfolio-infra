@@ -138,6 +138,18 @@ variable "p07_image_tag" {
   }
 }
 
+variable "p08_image_tag" {
+  description = "Container image tag or immutable commit SHA deployed for the P-08 E2E AI signal API and NLP worker Cloud Run Job."
+  type        = string
+  default     = "latest"
+
+  validation {
+    condition     = length(trimspace(var.p08_image_tag)) > 0
+    error_message = "p08_image_tag must be a non-empty tag or commit SHA."
+  }
+}
+
+
 
 
 
