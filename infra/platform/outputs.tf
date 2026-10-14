@@ -193,6 +193,22 @@ output "p06_train_detect_sa_email" {
   value       = module.p06_train_detect.service_account_email
 }
 
+output "p07_docs_rag_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-07 (financial-documents-rag)."
+  value       = module.p07_docs_rag.service_name
+}
+
+output "p07_docs_rag_service_url" {
+  description = "Public HTTPS URL of the P-07 SEC Documents Hybrid RAG API."
+  value       = module.p07_docs_rag.service_uri
+}
+
+output "p07_docs_rag_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-07 Documents RAG Cloud Run Service."
+  value       = module.p07_docs_rag.service_account_email
+}
+
+
 
 
 
