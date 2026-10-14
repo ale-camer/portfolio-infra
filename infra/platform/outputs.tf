@@ -233,6 +233,52 @@ output "p08_nlp_worker_sa_email" {
   value       = module.p08_nlp_worker.service_account_email
 }
 
+output "p09_research_agent_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-09 (financial-research-agent)."
+  value       = module.p09_research_agent.service_name
+}
+
+output "p09_research_agent_service_url" {
+  description = "Public HTTPS URL of the P-09 Financial Research Agent API."
+  value       = module.p09_research_agent.service_uri
+}
+
+output "p09_research_agent_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-09 Research Agent Cloud Run Service."
+  value       = module.p09_research_agent.service_account_email
+}
+
+output "p10_trading_analyst_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-10 (autonomous-trading-agent)."
+  value       = module.p10_trading_analyst.service_name
+}
+
+output "p10_trading_analyst_service_url" {
+  description = "Public HTTPS URL of the P-10 Autonomous ReAct Paper Trading Agent API."
+  value       = module.p10_trading_analyst.service_uri
+}
+
+output "p10_trading_analyst_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-10 Trading Analyst Cloud Run Service."
+  value       = module.p10_trading_analyst.service_account_email
+}
+
+output "p11_multi_agent_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-11 (multi-agent-market-intelligence)."
+  value       = module.p11_multi_agent.service_name
+}
+
+output "p11_multi_agent_service_url" {
+  description = "Public HTTPS URL of the P-11 Multi-Agent LangGraph Capstone API."
+  value       = module.p11_multi_agent.service_uri
+}
+
+output "p11_multi_agent_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-11 Multi-Agent Cloud Run Service."
+  value       = module.p11_multi_agent.service_account_email
+}
+
+
 
 
 

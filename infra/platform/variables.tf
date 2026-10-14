@@ -149,6 +149,40 @@ variable "p08_image_tag" {
   }
 }
 
+variable "p09_image_tag" {
+  description = "Container image tag or immutable commit SHA deployed for the P-09 tool-using financial research agent Cloud Run Service."
+  type        = string
+  default     = "latest"
+
+  validation {
+    condition     = length(trimspace(var.p09_image_tag)) > 0
+    error_message = "p09_image_tag must be a non-empty tag or commit SHA."
+  }
+}
+
+variable "p10_image_tag" {
+  description = "Container image tag or immutable commit SHA deployed for the P-10 autonomous ReAct paper-trading agent Cloud Run Service."
+  type        = string
+  default     = "latest"
+
+  validation {
+    condition     = length(trimspace(var.p10_image_tag)) > 0
+    error_message = "p10_image_tag must be a non-empty tag or commit SHA."
+  }
+}
+
+variable "p11_image_tag" {
+  description = "Container image tag or immutable commit SHA deployed for the P-11 multi-agent LangGraph market intelligence Cloud Run Service."
+  type        = string
+  default     = "latest"
+
+  validation {
+    condition     = length(trimspace(var.p11_image_tag)) > 0
+    error_message = "p11_image_tag must be a non-empty tag or commit SHA."
+  }
+}
+
+
 
 
 
