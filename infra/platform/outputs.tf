@@ -53,4 +53,25 @@ output "secret_manager_secret_names" {
   value       = { for k, s in google_secret_manager_secret.catalog : k => s.name }
 }
 
+output "wif_pool_name" {
+  description = "Fully-qualified resource name of the GitHub Actions Workload Identity Pool."
+  value       = google_iam_workload_identity_pool.github.name
+}
+
+output "wif_provider_name" {
+  description = "Fully-qualified resource name of the GitHub OIDC Workload Identity Pool Provider for google-github-actions/auth@v2."
+  value       = google_iam_workload_identity_pool_provider.github_oidc.name
+}
+
+output "cicd_deployer_sa_email" {
+  description = "Email of the keyless CI/CD deployer service account (sa-cicd-deployer) used by P-01..P-11."
+  value       = google_service_account.cicd_deployer.email
+}
+
+output "infra_terraform_sa_email" {
+  description = "Email of the keyless Terraform CI service account (sa-infra-terraform) used by portfolio-infra (P-12)."
+  value       = google_service_account.infra_terraform.email
+}
+
+
 
