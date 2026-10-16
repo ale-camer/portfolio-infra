@@ -83,6 +83,9 @@ portfolio-infra/
 
 ## 4. Two-Stage Provisioning & CI/CD Quickstart
 
+> [!TIP]
+> For the comprehensive, step-by-step master guide covering external database setup (Neon, MongoDB Atlas, Upstash), secret injection, missing container builds, and staged Terraform commands, see the **[Master Deployment Guide (`docs/deployment_guide.md`)](docs/deployment_guide.md)**.
+
 ### Stage 1 — Bootstrap Remote State Bucket (Run Once)
 ```bash
 terraform -chdir=infra/bootstrap init
@@ -121,6 +124,7 @@ Sibling repositories (`P-01` to `P-11`) invoke `.github/workflows/cd-cloud-run.y
 
 ## 6. Documentation Index & Quality Gates
 
+- **Master Deployment Guide**: [`docs/deployment_guide.md`](docs/deployment_guide.md)
 - **Portfolio Audit Inventory**: [`docs/inventory.md`](docs/inventory.md)
 - **Target GCP Architecture & ADRs**: [`docs/architecture.md`](docs/architecture.md)
 - **External Free-Tier Databases Runbook**: [`docs/external_databases.md`](docs/external_databases.md)

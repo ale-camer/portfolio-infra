@@ -26,7 +26,7 @@ resource "google_billing_budget" "monthly_cap" {
 
   amount {
     specified_amount {
-      currency_code = "USD"
+      currency_code = "CHF"
       units         = tostring(var.monthly_budget_usd)
     }
   }

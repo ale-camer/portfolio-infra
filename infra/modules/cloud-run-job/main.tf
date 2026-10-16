@@ -16,7 +16,7 @@ locals {
     for s in values(var.secret_env_vars) : s.secret_id
   ])
 
-  enable_scheduler = var.schedule_cron != null && length(trimspace(coalesce(var.schedule_cron, ""))) > 0
+  enable_scheduler = var.schedule_cron != null && length(trimspace(var.schedule_cron)) > 0
 }
 
 resource "google_service_account" "runtime" {

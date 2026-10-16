@@ -1,0 +1,131 @@
+name: Deploy to Cloud Run (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      service_name:
+        description: "Name of the Cloud Run Service or Job to update (e.g., p11-multi-agent)"
+        required: true
+        type: string
+      is_job:
+        description: "Set to true when deploying a Cloud Run Job; false for Cloud Run Service"
+        required: false
+        default: false
+        type: boolean
+      dockerfile:
+        description: "Path to Dockerfile"
+        required: false
+        default: "Dockerfile"
+        type: string
+      build_context:
+        description: "Docker build context directory"
+        required: false
+        default: "."
+        type: string
+      region:
+        description: "GCP deployment region"
+        required: false
+        default: "us-central1"
+        type: string
+      registry_name:
+        description: "Artifact Registry repository name"
+        required: false
+        default: "portfolio-apps"
+        type: string
+      verify_health:
+        description: "Whether to curl /health endpoint after deployment for Cloud Run Services"
+        required: false
+        default: true
+        type: boolean
+    secrets:
+      GCP_PROJECT_ID:
+        description: "Google Cloud Project ID"
+        required: true
+      WIF_PROVIDER:
+        description: "Workload Identity Provider identifier"
+        required: true
+      WIF_SERVICE_ACCOUNT:
+        description: "Service Account email for CI/CD deployer (sa-cicd-deployer)"
+        required: true
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Build, Push & Rollout
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker "${{ inputs.region }}-docker.pkg.dev" --quiet
+
+      - name: Build and Push Container Images
+        env:
+          IMAGE_BASE: "${{ inputs.region }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ inputs.registry_name }}/${{ inputs.service_name }}"
+          GIT_SHA: "${{ github.sha }}"
+        run: |
+          docker build \
+            -f "${{ inputs.dockerfile }}" \
+            -t "${IMAGE_BASE}:${GIT_SHA}" \
+            -t "${IMAGE_BASE}:latest" \
+            "${{ inputs.build_context }}"
+
+          docker push "${IMAGE_BASE}:${GIT_SHA}"
+          docker push "${IMAGE_BASE}:latest"
+
+      - name: Deploy Cloud Run Service
+        if: ${{ !inputs.is_job }}
+        env:
+          IMAGE_URI: "${{ inputs.region }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ inputs.registry_name }}/${{ inputs.service_name }}:${{ github.sha }}"
+        run: |
+          gcloud run services update "${{ inputs.service_name }}" \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --region="${{ inputs.region }}" \
+            --image="${IMAGE_URI}"
+
+      - name: Verify Service Health
+        if: ${{ !inputs.is_job && inputs.verify_health }}
+        run: |
+          SERVICE_URL=$(gcloud run services describe "${{ inputs.service_name }}" \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --region="${{ inputs.region }}" \
+            --format="value(status.url)")
+
+          echo "Checking health at ${SERVICE_URL}/health..."
+          for i in {1..6}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "${SERVICE_URL}/health" || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Health check passed (200 OK)."
+              exit 0
+            fi
+            echo "Attempt $i: Received status $STATUS, waiting 5s..."
+            sleep 5
+          done
+          echo "Health check failed after 6 attempts."
+          exit 1
+
+      - name: Deploy Cloud Run Job
+        if: ${{ inputs.is_job }}
+        env:
+          IMAGE_URI: "${{ inputs.region }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ inputs.registry_name }}/${{ inputs.service_name }}:${{ github.sha }}"
+        run: |
+          gcloud run jobs update "${{ inputs.service_name }}" \
+            --project="${{ secrets.GCP_PROJECT_ID }}" \
+            --region="${{ inputs.region }}" \
+            --image="${IMAGE_URI}"
