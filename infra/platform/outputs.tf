@@ -1,0 +1,311 @@
+output "enabled_apis" {
+  description = "Sorted list of GCP service APIs enabled for the portfolio platform."
+  value       = sort(keys(google_project_service.platform_apis))
+}
+
+output "budget_resource_name" {
+  description = "Resource name of the $10/month Cloud Billing Budget guarding the platform."
+  value       = google_billing_budget.monthly_cap.name
+}
+
+output "budget_notification_channel_id" {
+  description = "Cloud Monitoring email notification channel ID attached to budget and operational alerts."
+  value       = google_monitoring_notification_channel.budget_email.id
+}
+
+output "artifact_registry_url" {
+  description = "Base Docker repository URL in Artifact Registry for pushing and pulling portfolio images."
+  value       = "${var.region}-docker.pkg.dev/${var.project_id}/${google_artifact_registry_repository.portfolio_apps.repository_id}"
+}
+
+output "data_lake_bucket_name" {
+  description = "Name of the consolidated GCS Standard bucket for raw/staged data lake payloads (30-day retention)."
+  value       = google_storage_bucket.data_lake.name
+}
+
+output "data_lake_bucket_url" {
+  description = "gs:// URI of the consolidated GCS Standard data lake bucket."
+  value       = google_storage_bucket.data_lake.url
+}
+
+output "artifacts_bucket_name" {
+  description = "Name of the consolidated GCS Standard bucket for ML models, reports, and dbt docs (90-day retention)."
+  value       = google_storage_bucket.artifacts.name
+}
+
+output "artifacts_bucket_url" {
+  description = "gs:// URI of the consolidated GCS Standard artifacts bucket."
+  value       = google_storage_bucket.artifacts.url
+}
+
+output "bigquery_dataset_ids" {
+  description = "Map of BigQuery logical keys to provisioned dataset IDs for P-02 and P-05."
+  value       = { for k, ds in google_bigquery_dataset.datasets : k => ds.dataset_id }
+}
+
+output "secret_manager_secret_ids" {
+  description = "Map of logical secret keys to Secret Manager secret_id values for the 6 consolidated portfolio secrets."
+  value       = { for k, s in google_secret_manager_secret.catalog : k => s.secret_id }
+}
+
+output "secret_manager_secret_names" {
+  description = "Map of logical secret keys to fully-qualified Secret Manager resource names (projects/<project>/secrets/<id>)."
+  value       = { for k, s in google_secret_manager_secret.catalog : k => s.name }
+}
+
+output "wif_pool_name" {
+  description = "Fully-qualified resource name of the GitHub Actions Workload Identity Pool."
+  value       = google_iam_workload_identity_pool.github.name
+}
+
+output "wif_provider_name" {
+  description = "Fully-qualified resource name of the GitHub OIDC Workload Identity Pool Provider for google-github-actions/auth@v2."
+  value       = google_iam_workload_identity_pool_provider.github_oidc.name
+}
+
+output "cicd_deployer_sa_email" {
+  description = "Email of the keyless CI/CD deployer service account (sa-cicd-deployer) used by P-01..P-11."
+  value       = google_service_account.cicd_deployer.email
+}
+
+output "infra_terraform_sa_email" {
+  description = "Email of the keyless Terraform CI service account (sa-infra-terraform) used by portfolio-infra (P-12)."
+  value       = google_service_account.infra_terraform.email
+}
+
+output "external_database_topology" {
+  description = "Canonical connectivity metadata, Secret Manager shell IDs, and scale-to-zero pool settings for Neon PostgreSQL (pgvector), MongoDB Atlas M0, and Upstash Redis."
+  value       = local.external_database_topology
+}
+
+output "workload_db_secret_bindings" {
+  description = "Standardized per-workload database secret_env_vars and connection-pool env_vars map for P-01 through P-10."
+  value       = local.workload_db_secret_bindings
+}
+
+output "p01_daily_etl_job_name" {
+  description = "Provisioned Cloud Run v2 Job name for P-01 (financial-markets-pipeline)."
+  value       = module.p01_daily_etl.job_name
+}
+
+output "p01_daily_etl_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-01 daily ETL Cloud Run Job."
+  value       = module.p01_daily_etl.service_account_email
+}
+
+output "p01_daily_etl_scheduler_name" {
+  description = "Cloud Scheduler job name triggering P-01 daily ETL on weekdays after US market close (0 22 * * 1-5 UTC)."
+  value       = module.p01_daily_etl.scheduler_job_name
+}
+
+output "p02_crypto_etl_job_name" {
+  description = "Provisioned Cloud Run v2 Job name for P-02 (crypto-analytics-platform)."
+  value       = module.p02_crypto_etl.job_name
+}
+
+output "p02_crypto_etl_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-02 Polars lakehouse ETL Cloud Run Job."
+  value       = module.p02_crypto_etl.service_account_email
+}
+
+output "p02_crypto_etl_scheduler_name" {
+  description = "Cloud Scheduler job name triggering P-02 crypto lakehouse ETL daily at 01:00 UTC (0 1 * * *)."
+  value       = module.p02_crypto_etl.scheduler_job_name
+}
+
+output "p03_market_events_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-03 (real-time-market-events)."
+  value       = module.p03_market_events.service_name
+}
+
+output "p03_market_events_service_url" {
+  description = "Public HTTPS URL of the P-03 market events Cloud Run v2 Service."
+  value       = module.p03_market_events.service_uri
+}
+
+output "p03_market_events_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-03 Cloud Run Service."
+  value       = module.p03_market_events.service_account_email
+}
+
+output "p03_pubsub_topic_name" {
+  description = "Primary Cloud Pub/Sub topic name replacing Apache Kafka for P-03 market events."
+  value       = module.p03_market_events_pubsub.topic_name
+}
+
+output "p03_pubsub_subscription_name" {
+  description = "Primary Cloud Pub/Sub pull subscription name for P-03 market events."
+  value       = module.p03_market_events_pubsub.subscription_name
+}
+
+output "p05_hub_api_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-05 (market-intelligence-hub)."
+  value       = module.p05_hub_api.service_name
+}
+
+output "p05_hub_api_service_url" {
+  description = "Public HTTPS URL of the P-05 Unified Market Intelligence Hub API."
+  value       = module.p05_hub_api.service_uri
+}
+
+output "p05_hub_api_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-05 Hub API Cloud Run Service."
+  value       = module.p05_hub_api.service_account_email
+}
+
+output "p05_dbt_build_job_name" {
+  description = "Provisioned Cloud Run v2 Job name for P-05 daily dbt warehouse transformations."
+  value       = module.p05_dbt_build.job_name
+}
+
+output "p05_dbt_build_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-05 dbt build Cloud Run Job."
+  value       = module.p05_dbt_build.service_account_email
+}
+
+output "p05_dbt_build_scheduler_name" {
+  description = "Cloud Scheduler job name triggering P-05 dbt build daily at 02:00 UTC (0 2 * * *)."
+  value       = module.p05_dbt_build.scheduler_job_name
+}
+
+output "p06_anomaly_api_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-06 (asset-anomaly-detection)."
+  value       = module.p06_anomaly_api.service_name
+}
+
+output "p06_anomaly_api_service_url" {
+  description = "Public HTTPS URL of the P-06 Anomaly Detection MLOps API."
+  value       = module.p06_anomaly_api.service_uri
+}
+
+output "p06_anomaly_api_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-06 Anomaly API Cloud Run Service."
+  value       = module.p06_anomaly_api.service_account_email
+}
+
+output "p06_train_detect_job_name" {
+  description = "Provisioned Cloud Run v2 Job name for P-06 model training and Evidently drift detection."
+  value       = module.p06_train_detect.job_name
+}
+
+output "p06_train_detect_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-06 training/drift Cloud Run Job."
+  value       = module.p06_train_detect.service_account_email
+}
+
+output "p07_docs_rag_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-07 (financial-documents-rag)."
+  value       = module.p07_docs_rag.service_name
+}
+
+output "p07_docs_rag_service_url" {
+  description = "Public HTTPS URL of the P-07 SEC Documents Hybrid RAG API."
+  value       = module.p07_docs_rag.service_uri
+}
+
+output "p07_docs_rag_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-07 Documents RAG Cloud Run Service."
+  value       = module.p07_docs_rag.service_account_email
+}
+
+output "p08_market_intel_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-08 (ai-powered-market-intelligence)."
+  value       = module.p08_market_intel.service_name
+}
+
+output "p08_market_intel_service_url" {
+  description = "Public HTTPS URL of the P-08 End-to-End AI Market Intelligence API."
+  value       = module.p08_market_intel.service_uri
+}
+
+output "p08_market_intel_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-08 Market Intelligence Cloud Run Service."
+  value       = module.p08_market_intel.service_account_email
+}
+
+output "p08_nlp_worker_job_name" {
+  description = "Provisioned Cloud Run v2 Job name for P-08 NLP signal and embedding batch ingestion."
+  value       = module.p08_nlp_worker.job_name
+}
+
+output "p08_nlp_worker_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-08 NLP worker Cloud Run Job."
+  value       = module.p08_nlp_worker.service_account_email
+}
+
+output "p09_research_agent_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-09 (financial-research-agent)."
+  value       = module.p09_research_agent.service_name
+}
+
+output "p09_research_agent_service_url" {
+  description = "Public HTTPS URL of the P-09 Financial Research Agent API."
+  value       = module.p09_research_agent.service_uri
+}
+
+output "p09_research_agent_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-09 Research Agent Cloud Run Service."
+  value       = module.p09_research_agent.service_account_email
+}
+
+output "p10_trading_analyst_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-10 (autonomous-trading-agent)."
+  value       = module.p10_trading_analyst.service_name
+}
+
+output "p10_trading_analyst_service_url" {
+  description = "Public HTTPS URL of the P-10 Autonomous ReAct Paper Trading Agent API."
+  value       = module.p10_trading_analyst.service_uri
+}
+
+output "p10_trading_analyst_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-10 Trading Analyst Cloud Run Service."
+  value       = module.p10_trading_analyst.service_account_email
+}
+
+output "p11_multi_agent_service_name" {
+  description = "Provisioned Cloud Run v2 Service name for P-11 (multi-agent-market-intelligence)."
+  value       = module.p11_multi_agent.service_name
+}
+
+output "p11_multi_agent_service_url" {
+  description = "Public HTTPS URL of the P-11 Multi-Agent LangGraph Capstone API."
+  value       = module.p11_multi_agent.service_uri
+}
+
+output "p11_multi_agent_sa_email" {
+  description = "Dedicated least-privilege runtime Service Account email for the P-11 Multi-Agent Cloud Run Service."
+  value       = module.p11_multi_agent.service_account_email
+}
+
+output "monitoring_dashboard_id" {
+  description = "Resource ID of the Cloud Monitoring observability & latency dashboard."
+  value       = google_monitoring_dashboard.platform_observability.id
+}
+
+output "monitoring_uptime_check_ids" {
+  description = "Map of Cloud Run service keys to provisioned Cloud Monitoring HTTPS /health uptime check IDs (empty when enable_uptime_checks = false)."
+  value       = { for k, check in google_monitoring_uptime_check_config.cloud_run_health : k => check.uptime_check_id }
+}
+
+output "monitoring_alert_policy_ids" {
+  description = "Map of Cloud Monitoring alert policy keys to their fully-qualified resource IDs."
+  value = {
+    log_errors     = google_monitoring_alert_policy.cloud_run_log_errors.id
+    latency_5xx    = google_monitoring_alert_policy.cloud_run_5xx_and_latency.id
+    uptime_failure = var.enable_uptime_checks ? google_monitoring_alert_policy.cloud_run_uptime_failure[0].id : null
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

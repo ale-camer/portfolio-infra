@@ -6,3 +6,20 @@ billing_account_id = "000000-000000-000000"
 alert_email        = "alerts-example@example.com"
 github_owner       = "ale-camer"
 monthly_budget_usd = 10
+
+# Observability & Free-Tier Guardrails
+enable_uptime_checks = true
+log_retention_days   = 7
+
+# Container Image Tags (P-01 to P-11; overridden by CI/CD with immutable commit SHAs)
+p01_image_tag = "latest"
+p02_image_tag = "latest"
+p03_image_tag = "latest"
+p05_image_tag = "latest"
+p06_image_tag = "latest"
+p07_image_tag = "latest"
+p08_image_tag = "latest"
+p09_image_tag = "latest"
+p10_image_tag = "latest"
+p11_image_tag = "latest"
+
