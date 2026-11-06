@@ -418,7 +418,7 @@ Google Secret Manager includes **6 active secret versions free per month** ($0.0
 
 | Consolidated Secret ID (Secret Manager) | Consuming Repositories | Environment Variable Mappings Across Repos |
 |---|---|---|
-| `1. portfolio-llm-api-key` | `P-07`, `P-08`, `P-09`, `P-10`, `P-11` | `OPENAI_API_KEY`, `LLM_API_KEY` (and optional JSON bundle for `ANTHROPIC_API_KEY` / `GOOGLE_API_KEY` in `P-10`) |
+| `1. portfolio-llm-api-key` | `P-07`, `P-08`, `P-09`, `P-10`, `P-11`, `P-13` | `OPENAI_API_KEY`, `LLM_API_KEY`, `GOOGLE_API_KEY` (`p12-guide-agent-flash-lite` on `projects/162760084346` for `gemini-3.5-flash-lite` with `10 RPM` / `250 RPD` / `320 maxOutputTokens` / `50k daily tokens` guardrails) |
 | `2. portfolio-postgres-url` | `P-01`, `P-03`, `P-05`, `P-06`, `P-07`, `P-08`, `P-10` | `DATABASE_URL`, `POSTGRES_PASSWORD`, `TIMESCALE_PASSWORD`, `VECTOR_STORE_URL` (shared serverless Postgres + `pgvector` with per-repo databases/schemas) |
 | `3. portfolio-market-api-keys` | `P-01`, `P-02`, `P-03`, `P-05`, `P-06`, `P-08` | JSON/env bundle for `COINGECKO_API_KEY`, `ALPHA_VANTAGE_API_KEY`, `POLYGON_API_KEY`, `GLASSNODE_API_KEY` |
 | `4. portfolio-news-social-keys` | `P-04`, `P-05`, `P-08` | JSON/env bundle for `NEWSAPI_API_KEY` (`NEWSAPI_KEY`), `REDDIT_CLIENT_ID`, `REDDIT_CLIENT_SECRET` |
@@ -459,6 +459,26 @@ To validate the end-to-end WIF → Artifact Registry → Terraform Cloud Run →
 | **Secret Manager** | 6 deduplicated platform secrets (1 active version each) | 6 active secret versions + 10,000 access operations/month free | **$0.00** |
 | **Cloud Logging & Monitoring** | Centralized logs (`_Default` 7-day retention), uptime checks, and $10 budget alerts | First 50 GiB/month logs + alerting policies free | **$0.00** |
 | **External Free-Tier Data Stores** | Neon Serverless Postgres + `pgvector` (free 0.5 GB), MongoDB Atlas M0 (free 512 MB), Upstash Redis (free 10k cmds/day) | Eliminates ~$35/mo Cloud SQL, ~$35/mo Memorystore, and ~$100/mo managed Kafka | **$0.00** |
-| **LLM API Usage (Demo / Scheduled)** | `gpt-4o-mini` / `text-embedding-3-small` (`P-07`–`P-11`), with `--mock` / `fake` default for scheduled runs | Rate-limited live queries + deterministic fake/mock providers for automated smoke checks | **$0.50** |
-| **Total Estimated Platform Spend** | **All 11 Portfolio Projects (`P-01` to `P-11`) + `P-12` (`portfolio-infra`)** | **83.8% below the $10.00/month hard budget cap** | **~$1.62 / month** |
+| **LLM API Usage (Demo / Scheduled)** | `gpt-4o-mini` / `text-embedding-3-small` (`P-07`–`P-11`) + `gemini-3.5-flash-lite` (`p12-guide-agent-flash-lite` on `projects/162760084346` in `P-13`) | Rate-limited (`10 RPM`, `250 RPD`, `320 maxOutputTokens`, `50k tokens/day`, strict `Scope-Lock`) + deterministic fallback | **$0.00 – $0.50** |
+| **Total Estimated Platform Spend** | **All 13 Portfolio Modules (`P-01` to `P-13`)** | **>85% below the $10.00/month hard budget cap** | **~$0.95 – $1.62 / month** |
+
+---
+
+## Ecosystem Guardrails & Audit Telemetry Matrix (`P-01` to `P-13`)
+
+| Module | Repository | Hard Guardrails & Caps | Audited Telemetry Metrics |
+|---|---|---|---|
+| **P-01** | `financial-markets-pipeline` | Zero-null OHLCV gate, `price > 0`, `900s` timeout, `max_retries=1` | Rows ingested, null/outlier rejections, backoff count, job duration `ms` |
+| **P-02** | `crypto-analytics-platform` | Polars strict dtype contract, `RSI in [0, 100]`, Bollinger `2σ` bounds | Parquet partition bytes, indicator drift checks, BigQuery load status |
+| **P-03** | `real-time-market-events` | Pub/Sub DLQ (`max_delivery_attempts=5`), `max_instances=2`, Pydantic lock | Events/sec throughput, DLQ count (`0`), ack latency `ms`, watermark lag |
+| **P-04** | `financial-news-analysis-api` | FinBERT softmax sum `= 1.0`, polarity `[-1.0, +1.0]`, CPU-only worker | Headlines/hr, pos/neu/neg distribution, inference `ms`, cache hits |
+| **P-05** | `market-intelligence-hub` | 28/28 `dbt` + Great Expectations uniqueness/not-null gates | `dbt` build duration, GE pass rate (`100%`), mart freshness lag |
+| **P-06** | `asset-anomaly-detection` | Isolation Forest `contamination=0.05` lock, score `[0.0, 1.0]`, SHA-256 check | Regime distribution (`Normal`/`Elevated`/`Atypical`), Z-scores, `p50/p95 ms` |
+| **P-07** | `financial-documents-rag` | Cosine similarity floor `>= 0.70`, `RAG_TOP_K=5`, `max_tokens=1024` | Top-K cosine scores, SEC 10-K citation IDs, prompt/completion tokens |
+| **P-08** | `ai-powered-market-intelligence` | Redis TTL shield (`120s`), `60 req/min` rate-limit, `4s` upstream timeout | Dispatch latency `ms`, Redis cache hit `%`, upstream HTTP status codes |
+| **P-09** | `financial-research-agent` | `AGENT_MAX_ITERATIONS=5`, Bull/Bear weights `= 100%`, `50k` daily token cap | Reasoning steps, tool-call latency, conviction scores, tokens/thesis |
+| **P-10** | `autonomous-trading-analysis` | `TRADING_MODE=paper` lock, hard `20% NAV` single-asset cap, `Kelly <= 0.5x` | Pre/post-trade Sharpe, `95% VaR` / `99% CVaR` delta, paper audit log |
+| **P-11** | `multi-agent-market-intelligence` | 3-Pillar quorum + automatic `5% NAV` circuit-breaker when `P-06 >= 0.65` | Pillar vote breakdown (`3/3`), circuit-breaker triggers, LangGraph latency |
+| **P-12** | `portfolio-infra` | Keyless GitHub OIDC WIF, 6-secret GSM catalog, `checkov` + `tflint`, `$10/mo` alarm | Terraform drift (`0`), IAM bindings, GSM secret versions, CI smoke status |
+| **P-13** | `market-intelligence-dashboard` | `p12-guide-agent-flash-lite` (`projects/162760084346`, `gemini-3.5-flash-lite`): `Scope-Lock`, `500-char` input cap, `320 maxOutputTokens`, `10 RPM`, `250 RPD`, `50k tok/day` | Live Gemini prompt/completion/total tokens, `responseId`, latency `ms`, Scope-Lock & RPM blocks |
 

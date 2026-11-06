@@ -6,10 +6,16 @@ locals {
   agent_llm_budget_guardrails = {
     ENVIRONMENT            = var.environment
     GCP_PROJECT_ID         = var.project_id
+    GCP_PROJECT_NUMBER     = "162760084346"
     GCP_REGION             = var.region
     LLM_MODEL              = "gpt-4o-mini"
+    GEMINI_GUIDE_MODEL     = "gemini-3.5-flash-lite"
+    GEMINI_KEY_ALIAS       = "p12-guide-agent-flash-lite"
     LLM_SMOKE_MODE         = "fake"
     LLM_MAX_TOKENS_PER_REQ = "1024"
+    GUIDE_MAX_OUTPUT_TOK   = "320"
+    GUIDE_RPM_LIMIT        = "10"
+    GUIDE_DAILY_REQ_CAP    = "250"
     AGENT_MAX_ITERATIONS   = "5"
     DAILY_TOKEN_BUDGET     = "50000"
     MONTHLY_LLM_BUDGET_USD = "2.00"
