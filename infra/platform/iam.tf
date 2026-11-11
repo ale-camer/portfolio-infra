@@ -80,3 +80,16 @@ resource "google_service_account_iam_member" "portfolio_infra_wif_user" {
   role               = "roles/iam.workloadIdentityUser"
   member             = "principalSet://iam.googleapis.com/${google_iam_workload_identity_pool.github.name}/attribute.repository/${var.github_owner}/portfolio-infra"
 }
+
+# Allow sa-infra-terraform to read external DB secrets for scheduled keepalive heartbeats.
+resource "google_secret_manager_secret_iam_member" "infra_keepalive_secret_accessor" {
+  for_each = toset([
+    "portfolio-nosql-cache-urls",
+    "portfolio-postgres-url",
+  ])
+
+  project   = var.project_id
+  secret_id = google_secret_manager_secret.catalog[each.key].secret_id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.infra_terraform.email}"
+}
