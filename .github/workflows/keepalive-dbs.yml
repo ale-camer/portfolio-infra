@@ -1,0 +1,88 @@
+name: External Free-Tier Databases Keepalive (MongoDB Atlas, Upstash Redis, Neon Postgres)
+
+on:
+  schedule:
+    # Runs at 08:00 UTC on the 1st and 15th of every month (well within the 30-day inactivity window)
+    - cron: "0 8 1,15 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  keepalive:
+    name: Heartbeat MongoDB Atlas M0, Upstash Redis & Neon Postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Authenticate to Google Cloud via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER || 'projects/953935962175/locations/global/workloadIdentityPools/github-actions-pool/providers/github-oidc-provider' }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT || 'sa-infra-terraform@gen-lang-client-0887473308.iam.gserviceaccount.com' }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Python 3.12 & DB drivers
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install lightweight drivers
+        run: |
+          pip install --quiet "pymongo>=4.6.0" "redis>=5.0.0" "psycopg[binary]>=3.1.0"
+
+      - name: Execute Read/Write Heartbeats
+        env:
+          GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || 'gen-lang-client-0887473308' }}
+        run: |
+          NOSQL_JSON="$(gcloud secrets versions access latest --secret=portfolio-nosql-cache-urls --project="${GCP_PROJECT_ID}")"
+          PG_URL="$(gcloud secrets versions access latest --secret=portfolio-postgres-url --project="${GCP_PROJECT_ID}")"
+          export NOSQL_JSON PG_URL
+
+          python3 - << 'EOF'
+          import json
+          import os
+          from datetime import datetime, timezone
+          import psycopg
+          import redis
+          from pymongo import MongoClient
+
+          now_iso = datetime.now(timezone.utc).isoformat()
+          nosql = json.loads(os.environ["NOSQL_JSON"])
+          mongo_uri = nosql["MONGODB_URI"]
+          redis_url = nosql["REDIS_URL"]
+          raw_pg = os.environ["PG_URL"].strip()
+          pg_url = json.loads(raw_pg).get("DATABASE_URL", raw_pg) if raw_pg.startswith("{") else raw_pg
+          pg_url = pg_url.replace("postgresql+asyncpg://", "postgresql://").replace("postgresql+psycopg://", "postgresql://")
+
+          # 1. MongoDB Atlas M0 (requires real document read/write to reset 30-day inactivity timer)
+          mc = MongoClient(mongo_uri, serverSelectionTimeoutMS=10000)
+          db = mc["p04_financial_news"]
+          db["_keepalive"].update_one(
+              {"_id": "atlas_heartbeat"},
+              {"$set": {"last_heartbeat_utc": now_iso}},
+              upsert=True,
+          )
+          doc = db["_keepalive"].find_one({"_id": "atlas_heartbeat"})
+          assert doc and doc.get("last_heartbeat_utc") == now_iso
+          print(f"[OK] MongoDB Atlas M0 heartbeat updated: {doc['last_heartbeat_utc']}")
+
+          # 2. Upstash Serverless Redis
+          rc = redis.from_url(redis_url, socket_timeout=10)
+          rc.set("_keepalive:heartbeat", now_iso)
+          val = rc.get("_keepalive:heartbeat")
+          assert val is not None
+          print(f"[OK] Upstash Redis heartbeat updated: {val.decode('utf-8')}")
+
+          # 3. Neon Serverless PostgreSQL
+          with psycopg.connect(pg_url, connect_timeout=10) as conn:
+              with conn.cursor() as cur:
+                  cur.execute("SELECT 1;")
+                  row = cur.fetchone()
+                  assert row == (1,)
+          print("[OK] Neon PostgreSQL heartbeat verified: SELECT 1 -> (1,)")
+          EOF
