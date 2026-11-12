@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
 Standardized 2-tier WhatsApp notification helper for portfolio-infra workflows:
-  - *[KEEPALIVE-DBS]*
-  - *[UPTIME-WEB]*
-  - *[FINOPS-GCP]*
+  - *[ESTADO-WEBS]*
+  - *[BASES-DE-DATOS]*
+  - *[COSTOS-CLOUD]*
 Supports TextMeBot (group JID `@g.us` or phone) and CallMeBot with automatic rate-limit retry.
 """
 
@@ -23,18 +23,16 @@ logger = logging.getLogger("notify_whatsapp")
 def detect_trigger_label() -> str:
     ev = os.getenv("GITHUB_EVENT_NAME", "").strip().lower()
     if ev == "schedule":
-        return "Cron"
-    if ev:
-        return "Manual (GHA)"
-    return "Test Manual"
+        return "Automático"
+    return "Manual"
 
 
-def send_whatsapp_notification(message: str, max_retries: int = 3) -> bool:
+def send_whatsapp_notification(message: str, max_retries: int = 4) -> bool:
     """
     Send `message` via TextMeBot or CallMeBot using:
       - WHATSAPP_PHONE: WhatsApp Group JID (`120363...@g.us`) OR phone number (`+4177...`)
       - WHATSAPP_APIKEY: TextMeBot alphanumeric key or CallMeBot numeric key
-    Automatically waits and retries if TextMeBot enforces its ~6s rate-limit window.
+    Automatically waits and retries if TextMeBot enforces its rate-limit window.
     """
     recipient = os.getenv("WHATSAPP_PHONE", "").strip()
     if not recipient:
@@ -85,8 +83,8 @@ def send_whatsapp_notification(message: str, max_retries: int = 3) -> bool:
                         ok = "Success" in body or "success" in body
                         comment = body
                     if not ok and ("wait" in comment.lower() or "limit" in comment.lower()) and attempt < max_retries:
-                        logger.info("TextMeBot rate limit hit (attempt %d/%d); sleeping 8s...", attempt, max_retries)
-                        time.sleep(8)
+                        logger.info("TextMeBot rate limit hit (attempt %d/%d); sleeping 9s...", attempt, max_retries)
+                        time.sleep(9)
                         continue
                 else:
                     ok = 200 <= resp.status < 300
@@ -95,5 +93,5 @@ def send_whatsapp_notification(message: str, max_retries: int = 3) -> bool:
         except Exception as exc:
             logger.error("Attempt %d/%d failed to send WhatsApp via %s: %s", attempt, max_retries, provider_name, exc)
             if attempt < max_retries:
-                time.sleep(6)
+                time.sleep(8)
     return False

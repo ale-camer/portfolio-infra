@@ -75,9 +75,8 @@ jobs:
           pg_url = pg_url.replace("postgresql+asyncpg://", "postgresql://").replace("postgresql+psycopg://", "postgresql://")
 
           statuses = {}
-          errors = []
 
-          # 1. MongoDB Atlas M0
+          # 1. MongoDB Atlas
           try:
               mc = MongoClient(mongo_uri, serverSelectionTimeoutMS=12000)
               db = mc["p04_financial_news"]
@@ -88,56 +87,59 @@ jobs:
               )
               doc = db["_keepalive"].find_one({"_id": "atlas_heartbeat"})
               assert doc and doc.get("last_heartbeat_utc") == now_iso
-              statuses["mongo"] = "OK (rw)"
+              statuses["mongo"] = "OK"
               print(f"[OK] MongoDB Atlas M0 heartbeat updated: {doc['last_heartbeat_utc']}")
           except Exception as exc:
-              statuses["mongo"] = "FAIL"
-              errors.append(f"MongoDB ({str(exc)[:60]})")
+              statuses["mongo"] = "FALLO"
+              print(f"[ERROR] MongoDB Atlas: {exc}")
 
-          # 2. Upstash Serverless Redis
+          # 2. Upstash Redis
           try:
               rc = redis.from_url(redis_url, socket_timeout=12)
               rc.set("_keepalive:heartbeat", now_iso)
               val = rc.get("_keepalive:heartbeat")
               assert val is not None
-              statuses["redis"] = "OK (rw)"
+              statuses["redis"] = "OK"
               print(f"[OK] Upstash Redis heartbeat updated: {val.decode('utf-8')}")
           except Exception as exc:
-              statuses["redis"] = "FAIL"
-              errors.append(f"Redis ({str(exc)[:60]})")
+              statuses["redis"] = "FALLO"
+              print(f"[ERROR] Upstash Redis: {exc}")
 
-          # 3. Neon Serverless PostgreSQL
+          # 3. Neon PostgreSQL
           try:
               with psycopg.connect(pg_url, connect_timeout=12) as conn:
                   with conn.cursor() as cur:
                       cur.execute("SELECT 1;")
                       row = cur.fetchone()
                       assert row == (1,)
-              statuses["postgres"] = "OK (SELECT 1)"
-              print("[OK] Neon PostgreSQL heartbeat verified: SELECT 1 -> (1,)")
+              statuses["postgres"] = "OK"
+              print("[OK] Neon PostgreSQL heartbeat verified")
           except Exception as exc:
-              statuses["postgres"] = "FAIL"
-              errors.append(f"Neon PG ({str(exc)[:60]})")
+              statuses["postgres"] = "FALLO"
+              print(f"[ERROR] Neon PostgreSQL: {exc}")
 
           duration_sec = time.perf_counter() - t0
-          ok_count = sum(1 for v in statuses.values() if v.startswith("OK"))
+          ok_count = sum(1 for v in statuses.values() if v == "OK")
 
           if ok_count == 3:
               msg = (
-                  "🟢 *[KEEPALIVE-DBS]* · Heartbeat Quincenal OK\n"
+                  "🟢 *[BASES-DE-DATOS]* · Mantenimiento Quincenal OK\n"
                   f"_{ts_utc} · {duration_sec:.1f}s · {trigger}_\n\n"
                   "*Detalle de control:*\n"
-                  f"> Bases activas: `{ok_count}/3` (ventana 30d reseteada)\n"
-                  f"> MongoDB Atlas M0: `{statuses['mongo']}` · Upstash Redis: `{statuses['redis']}`\n"
+                  f"> Bases activas: `{ok_count}/3`\n"
+                  f"> MongoDB Atlas: `{statuses['mongo']}`\n"
+                  f"> Upstash Redis: `{statuses['redis']}`\n"
                   f"> Neon PostgreSQL: `{statuses['postgres']}`"
               )
           else:
               msg = (
-                  "🔴 *[KEEPALIVE-DBS]* · Fallo en Heartbeat DBs\n"
+                  "🔴 *[BASES-DE-DATOS]* · Fallo en Base de Datos\n"
                   f"_{ts_utc} · {duration_sec:.1f}s · {trigger}_\n\n"
                   "*Diagnóstico:*\n"
-                  f"> Bases OK: `{ok_count}/3`\n"
-                  f"> Error: {', '.join(errors)}"
+                  f"> Bases activas: `{ok_count}/3`\n"
+                  f"> MongoDB Atlas: `{statuses['mongo']}`\n"
+                  f"> Upstash Redis: `{statuses['redis']}`\n"
+                  f"> Neon PostgreSQL: `{statuses['postgres']}`"
               )
 
           send_whatsapp_notification(msg)
