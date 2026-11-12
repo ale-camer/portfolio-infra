@@ -17,6 +17,9 @@ jobs:
     timeout-minutes: 5
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Authenticate to Google Cloud via WIF
         uses: google-github-actions/auth@v2
         with:
@@ -35,9 +38,12 @@ jobs:
         run: |
           pip install --quiet "pymongo>=4.6.0" "redis>=5.0.0" "psycopg[binary]>=3.1.0"
 
-      - name: Execute Read/Write Heartbeats
+      - name: Execute Read/Write Heartbeats & Send WhatsApp Report
         env:
           GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || 'gen-lang-client-0887473308' }}
+          WHATSAPP_PHONE: ${{ secrets.WHATSAPP_PHONE }}
+          WHATSAPP_APIKEY: ${{ secrets.WHATSAPP_APIKEY }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
           NOSQL_JSON="$(gcloud secrets versions access latest --secret=portfolio-nosql-cache-urls --project="${GCP_PROJECT_ID}")"
           PG_URL="$(gcloud secrets versions access latest --secret=portfolio-postgres-url --project="${GCP_PROJECT_ID}")"
@@ -46,12 +52,21 @@ jobs:
           python3 - << 'EOF'
           import json
           import os
+          import sys
+          import time
           from datetime import datetime, timezone
           import psycopg
           import redis
           from pymongo import MongoClient
 
+          sys.path.insert(0, "scripts")
+          from notify_whatsapp import detect_trigger_label, send_whatsapp_notification
+
+          t0 = time.perf_counter()
           now_iso = datetime.now(timezone.utc).isoformat()
+          ts_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+          trigger = detect_trigger_label()
+
           nosql = json.loads(os.environ["NOSQL_JSON"])
           mongo_uri = nosql["MONGODB_URI"]
           redis_url = nosql["REDIS_URL"]
@@ -59,30 +74,73 @@ jobs:
           pg_url = json.loads(raw_pg).get("DATABASE_URL", raw_pg) if raw_pg.startswith("{") else raw_pg
           pg_url = pg_url.replace("postgresql+asyncpg://", "postgresql://").replace("postgresql+psycopg://", "postgresql://")
 
-          # 1. MongoDB Atlas M0 (requires real document read/write to reset 30-day inactivity timer)
-          mc = MongoClient(mongo_uri, serverSelectionTimeoutMS=10000)
-          db = mc["p04_financial_news"]
-          db["_keepalive"].update_one(
-              {"_id": "atlas_heartbeat"},
-              {"$set": {"last_heartbeat_utc": now_iso}},
-              upsert=True,
-          )
-          doc = db["_keepalive"].find_one({"_id": "atlas_heartbeat"})
-          assert doc and doc.get("last_heartbeat_utc") == now_iso
-          print(f"[OK] MongoDB Atlas M0 heartbeat updated: {doc['last_heartbeat_utc']}")
+          statuses = {}
+          errors = []
+
+          # 1. MongoDB Atlas M0
+          try:
+              mc = MongoClient(mongo_uri, serverSelectionTimeoutMS=12000)
+              db = mc["p04_financial_news"]
+              db["_keepalive"].update_one(
+                  {"_id": "atlas_heartbeat"},
+                  {"$set": {"last_heartbeat_utc": now_iso}},
+                  upsert=True,
+              )
+              doc = db["_keepalive"].find_one({"_id": "atlas_heartbeat"})
+              assert doc and doc.get("last_heartbeat_utc") == now_iso
+              statuses["mongo"] = "OK (rw)"
+              print(f"[OK] MongoDB Atlas M0 heartbeat updated: {doc['last_heartbeat_utc']}")
+          except Exception as exc:
+              statuses["mongo"] = "FAIL"
+              errors.append(f"MongoDB ({str(exc)[:60]})")
 
           # 2. Upstash Serverless Redis
-          rc = redis.from_url(redis_url, socket_timeout=10)
-          rc.set("_keepalive:heartbeat", now_iso)
-          val = rc.get("_keepalive:heartbeat")
-          assert val is not None
-          print(f"[OK] Upstash Redis heartbeat updated: {val.decode('utf-8')}")
+          try:
+              rc = redis.from_url(redis_url, socket_timeout=12)
+              rc.set("_keepalive:heartbeat", now_iso)
+              val = rc.get("_keepalive:heartbeat")
+              assert val is not None
+              statuses["redis"] = "OK (rw)"
+              print(f"[OK] Upstash Redis heartbeat updated: {val.decode('utf-8')}")
+          except Exception as exc:
+              statuses["redis"] = "FAIL"
+              errors.append(f"Redis ({str(exc)[:60]})")
 
           # 3. Neon Serverless PostgreSQL
-          with psycopg.connect(pg_url, connect_timeout=10) as conn:
-              with conn.cursor() as cur:
-                  cur.execute("SELECT 1;")
-                  row = cur.fetchone()
-                  assert row == (1,)
-          print("[OK] Neon PostgreSQL heartbeat verified: SELECT 1 -> (1,)")
+          try:
+              with psycopg.connect(pg_url, connect_timeout=12) as conn:
+                  with conn.cursor() as cur:
+                      cur.execute("SELECT 1;")
+                      row = cur.fetchone()
+                      assert row == (1,)
+              statuses["postgres"] = "OK (SELECT 1)"
+              print("[OK] Neon PostgreSQL heartbeat verified: SELECT 1 -> (1,)")
+          except Exception as exc:
+              statuses["postgres"] = "FAIL"
+              errors.append(f"Neon PG ({str(exc)[:60]})")
+
+          duration_sec = time.perf_counter() - t0
+          ok_count = sum(1 for v in statuses.values() if v.startswith("OK"))
+
+          if ok_count == 3:
+              msg = (
+                  "🟢 *[KEEPALIVE-DBS]* · Heartbeat Quincenal OK\n"
+                  f"_{ts_utc} · {duration_sec:.1f}s · {trigger}_\n\n"
+                  "*Detalle de control:*\n"
+                  f"> Bases activas: `{ok_count}/3` (ventana 30d reseteada)\n"
+                  f"> MongoDB Atlas M0: `{statuses['mongo']}` · Upstash Redis: `{statuses['redis']}`\n"
+                  f"> Neon PostgreSQL: `{statuses['postgres']}`"
+              )
+          else:
+              msg = (
+                  "🔴 *[KEEPALIVE-DBS]* · Fallo en Heartbeat DBs\n"
+                  f"_{ts_utc} · {duration_sec:.1f}s · {trigger}_\n\n"
+                  "*Diagnóstico:*\n"
+                  f"> Bases OK: `{ok_count}/3`\n"
+                  f"> Error: {', '.join(errors)}"
+              )
+
+          send_whatsapp_notification(msg)
+          if ok_count < 3:
+              sys.exit(1)
           EOF
