@@ -1,0 +1,48 @@
+name: Ecosystem Uptime & FinOps Monitoring (WhatsApp Alerts)
+
+on:
+  schedule:
+    # Daily check at 07:00 UTC (sends immediate alert on any failure + Monday weekly digest + 1st of month FinOps digest)
+    - cron: "0 7 * * *"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Check mode (uptime, finops, or both)"
+        required: false
+        default: "both"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  monitor:
+    name: Uptime & FinOps Guardrail Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud via WIF
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER || 'projects/953935962175/locations/global/workloadIdentityPools/github-actions-pool/providers/github-oidc-provider' }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT || 'sa-infra-terraform@gen-lang-client-0887473308.iam.gserviceaccount.com' }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Ecosystem Health & FinOps Monitor
+        env:
+          WHATSAPP_PHONE: ${{ secrets.WHATSAPP_PHONE }}
+          WHATSAPP_APIKEY: ${{ secrets.WHATSAPP_APIKEY }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+        run: |
+          python3 scripts/ecosystem_health_and_finops.py --mode "${{ github.event.inputs.mode || 'both' }}"
